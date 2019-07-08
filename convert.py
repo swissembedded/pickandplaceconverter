@@ -16,8 +16,8 @@
 
 import pandas as pd
 import math
-
-pp_file = "Pick Place for EnergyMeter.txt"
+import sys
+import csv
 
 def get_header(line):
     head = []
@@ -58,7 +58,26 @@ def import_pick_place(file):
                 row = get_row(x, cols)
                 data.append(row)
     return data
-         
 
-pp = import_pick_place(pp_file)
+def export_pick_place(data, f):
+    with open(f, mode='w') as file:
+        for i, x in enumerate(data):
+            for j, y in enumerate(x):
+                file.write('%-15s' % (y))
+            if i == 0:
+                file.write('\n')
+            file.write('\n')
+
+if len(sys.argv) != 3:
+    print(
+        "arguments, For example\n"
+        "./convert.py in_pp_file.txt out_pp_file.txt\n")
+    exit()
+
+in_pp_file = sys.argv[1]
+out_pp_file = sys.argv[2]
+
+pp = import_pick_place(in_pp_file)
+export_pick_place(pp, out_pp_file)
+
 print(pp)
