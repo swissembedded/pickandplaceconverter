@@ -62,17 +62,12 @@ def import_pick_place(file):
 def export_pick_place(data, f):
     with open(f, mode='w') as file:
         for i, x in enumerate(data):
-            if i == 0: # header
+            if i == 0 or x[0][0] == "R" or x[0][0] == "C":
                 for j, y in enumerate(x):
                     file.write('%-15s' % (y))
                 file.write('\n')
-            else:
-                if x[0][0] == "R" or x[0][0] == "C":
-                    for j, y in enumerate(x):
-                       file.write('%-15s' % (y))
-                else:
-                    continue
-            file.write('\n')
+            if i == 0:
+                file.write('\n')
 
 if len(sys.argv) != 3:
     print(
