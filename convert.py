@@ -14,14 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import pandas as pd
-import math
 import sys
-import csv
+import transform
 
+# get header from pick and place file
 def get_header(line):
     head = []
     for i, x in enumerate(line):
+        #consider Mid X, Mid Y, Mid Z as one column
         if x == "X" or x == "Y" or x == "Z" :
             l = len(head)
             head[l-1] += " " + x
@@ -29,7 +29,7 @@ def get_header(line):
             head.append(x)
     return head, len(head)
 
-def get_row(line, cols):
+def get_content(line, cols):
     row = []
     for i, x in enumerate(line):
         if i < cols :
@@ -55,19 +55,30 @@ def import_pick_place(file):
                 data.append(head)     
                 pass_header = True
             else:
-                row = get_row(x, cols)
+                row = get_content(x, cols)
                 data.append(row)
     return data
 
 def export_pick_place(data, f):
     with open(f, mode='w') as file:
-        for i, x in enumerate(data):
-            if i == 0 or x[0][0] == "R" or x[0][0] == "C":
-                for j, y in enumerate(x):
-                    file.write('%-15s' % (y))
-                file.write('\n')
+        for i, line in enumerate(data):
+            # not convert first line
             if i == 0:
-                file.write('\n')
+                for j, item in enumerate(line):
+                    file.write('%-15s' % (item))
+                # add a space line after header
+                file.write('\n\n')
+                continue
+            #convert line
+            line, ignore = transform.convert_line(line)
+            #if ignore line, do not export
+            if ignore == True:
+                continue
+            #print line
+            for j, item in enumerate(line):
+                file.write('%-15s' % (item))
+            file.write('\n')
+
 
 if len(sys.argv) != 3:
     print(
