@@ -41,6 +41,7 @@ def get_content(line, cols):
 
 def import_pick_place(file):
     data = []
+    header = []
     cols = 0
     with open(file) as f:
         lines = [line.split() for line in f]
@@ -51,15 +52,15 @@ def import_pick_place(file):
             if len(x) == 0:
                 continue
             if pass_header == False:
-                head, cols = get_header(x)
-                data.append(head)     
+                header, cols = get_header(x)
+                data.append(header)
                 pass_header = True
             else:
                 row = get_content(x, cols)
                 data.append(row)
-    return data
+    return data, header
 
-def export_pick_place(data, f):
+def export_pick_place(data, header, f):
     with open(f, mode='w') as file:
         for i, line in enumerate(data):
             # not convert first line
@@ -70,7 +71,7 @@ def export_pick_place(data, f):
                 file.write('\n\n')
                 continue
             #convert line
-            line, ignore = transform.convert_line(line)
+            line, ignore = transform.convert_line(header, line)
             #if ignore line, do not export
             if ignore == True:
                 continue
@@ -89,7 +90,7 @@ if len(sys.argv) != 3:
 in_pp_file = sys.argv[1]
 out_pp_file = sys.argv[2]
 
-pp = import_pick_place(in_pp_file)
-export_pick_place(pp, out_pp_file)
+pp, header = import_pick_place(in_pp_file)
+export_pick_place(pp, header, out_pp_file)
 
 print(pp)
