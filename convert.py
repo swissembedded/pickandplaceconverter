@@ -16,6 +16,8 @@
 
 import sys
 import transform
+import os
+import csv
 
 # get header from pick and place file
 def get_header(line):
@@ -39,58 +41,88 @@ def get_content(line, cols):
             row[l-1] += " " + x
     return row
 
-def import_pick_place(file):
-    data = []
-    header = []
-    cols = 0
-    with open(file) as f:
-        lines = [line.split() for line in f]
-        
-        pass_header = False
 
-        for i, x in enumerate(lines):
-            if len(x) == 0:
-                continue
-            if pass_header == False:
-                header, cols = get_header(x)
-                data.append(header)
-                pass_header = True
-            else:
-                row = get_content(x, cols)
-                data.append(row)
-    return data, header
-
-def export_pick_place(data, header, f):
-    with open(f, mode='w') as file:
+def export_pick_place_csv(data, header, f):
+    with open(f, mode='w', newline='') as file:
+        writer = csv.writer(file,quoting=csv.QUOTE_NONNUMERIC)
+        newData = []
+        newData.append(header)
         for i, line in enumerate(data):
-            # not convert first line
-            if i == 0:
-                for j, item in enumerate(line):
-                    file.write('%-15s' % (item))
-                # add a space line after header
-                file.write('\n\n')
-                continue
-            #convert line
             line, ignore = transform.convert_line(header, line)
-            #if ignore line, do not export
             if ignore == True:
                 continue
-            #print line
-            for j, item in enumerate(line):
-                file.write('%-15s' % (item))
-            file.write('\n')
+            newData.append(line)
+        writer.writerows(newData)
 
+#
+def process_csv_header(row):
+    header = []
+    rowMap = []
+    # we are building 
+    # <Ref>, <Package>, <Value>, <CenterX>, <CenterY>, <Rotation>, <Side>
+    field_remap = {
+        'Designator': 'Ref',
+        'Layer': 'Side',
+        'Footprint': 'Package',
+        'Center-X(mm)': 'Center X',
+        'Center-Y(mm)': 'Center Y',
+        'value': 'Value',
+        'Rotation': 'Rotation'
+    }
+    field_idx = {
+        'Ref': 0,
+        'Package': 1,
+        'Value': 2,
+        'Center X': 3,
+        'Center Y': 4,
+        'Rotation': 5,
+        'Side': 6
+    }
+    for i, field in enumerate(field_idx):
+        header.append(field)
+    for i, field in enumerate(row):
+        if field in field_remap:
+            rowMap.append( field_idx[field_remap[field]] )
+        else:
+            rowMap.append(-1)   # drop
+    return header, rowMap
+
+#
+def import_pick_place_csv(file):
+    data = []
+    header = []
+    rowMap = []
+    cols = 0
+    with open(file) as f:
+        reader = csv.reader(f,delimiter=',')
+        header_processed = False
+        for row in reader:
+            if len(row) > 1:
+                if header_processed == False:
+                    header, rowMap = process_csv_header(row)
+                    header_processed = True
+                else:
+                    crow = [None] * len(header)
+                    for i, field in enumerate(row):
+                        if rowMap[i] >= 0:
+                            crow[rowMap[i]] = field
+                    data.append(crow)
+    return data, header
 
 if len(sys.argv) != 3:
     print(
         "arguments, For example\n"
-        "./convert.py in_pp_file.txt out_pp_file.txt\n")
+        "./convert.py in_pp_file.csv out_pp_file.csv\n")
     exit()
 
 in_pp_file = sys.argv[1]
 out_pp_file = sys.argv[2]
 
-pp, header = import_pick_place(in_pp_file)
-export_pick_place(pp, header, out_pp_file)
+filename, ext_in = os.path.splitext(in_pp_file)
+filename, ext_out = os.path.splitext(out_pp_file)
+
+pp, header = import_pick_place_csv(in_pp_file)
+
+export_pick_place_csv(pp, header, out_pp_file)
 
 print(pp)
